@@ -1,20 +1,26 @@
 """Closed-loop simulation: continuous plant, discrete controller, realistic sensing.
 
 The plant is integrated with fixed-step RK4 (4 sub-steps per control period) so runs are fast and
-bit-for-bit repeatable. Sensing mirrors the firmware: tilt and gyro rate with Gaussian noise, wheel
-speed from quantised encoder counts differenced over one period, and a one-period actuation delay
-(the voltage computed from sample k is applied during period k+1).
+bit-for-bit repeatable. Sensing mirrors the firmware: the tilt comes from simulated IMU readings
+(accelerometer disturbed by the robot's own acceleration, biased noisy gyro, register quantisation)
+fused by the same complementary filter as the C code; wheel speed comes from quantised encoder counts
+differenced over SPEED_WINDOW periods (the C speed estimator); and there is a one-period actuation delay
+(the voltage computed from sample k is applied during period k+1). sensing="ideal" replaces the IMU and
+filter with the true tilt plus Gaussian noise, for comparison.
 """
 
 from __future__ import annotations
 
 import math
 from dataclasses import dataclass
+from typing import Literal
 
 import numpy as np
 from numpy.typing import NDArray
 
-from daruma.controllers import CascadeController, CascadeGains
+from daruma.controllers import SPEED_WINDOW, CascadeController, CascadeGains, WheelSpeedEstimator
+from daruma.fusion import DEFAULT_TAU_S, ComplementaryFilter, accel_angle
+from daruma.imu import read_imu
 from daruma.model import State, derivative
 from daruma.params import RobotParams
 
@@ -26,6 +32,14 @@ class SimResult:
     t: NDArray[np.float64]
     state: NDArray[np.float64]  # shape (n, 4): x, x_dot, theta, theta_dot
     voltage: NDArray[np.float64]
+    theta_est: NDArray[np.float64]  # the tilt the controller used at each sample, rad
+    gyro: NDArray[np.float64]  # filter input: measured rate, rad/s (NaN in "ideal" mode)
+    acc_angle: NDArray[np.float64]  # filter input: accelerometer-only tilt, rad (NaN in "ideal" mode)
+
+    @property
+    def estimate_error_rms_deg(self) -> float:
+        """RMS of (estimated - true) tilt over the run, in degrees."""
+        return float(np.degrees(np.sqrt(np.mean((self.theta_est - self.state[:, 2]) ** 2))))
 
     @property
     def theta_deg(self) -> NDArray[np.float64]:
@@ -68,6 +82,9 @@ def simulate(
     seed: int = 0,
     push_impulse_ns: float = 0.0,
     push_time_s: float = 1.0,
+    sensing: Literal["imu", "ideal"] = "imu",
+    fusion_tau_s: float = DEFAULT_TAU_S,
+    speed_window: int = SPEED_WINDOW,
 ) -> SimResult:
     """Runs one closed-loop experiment from rest at an initial tilt.
 
@@ -80,34 +97,48 @@ def simulate(
     ctrl = CascadeController(gains, p.v_battery)
 
     state = np.array([0.0, 0.0, math.radians(theta0_deg), 0.0])
-    prev_counts = encoder_counts(state, p)
+    rad_per_count = float(np.float32(2 * math.pi / p.encoder_counts_per_rev))
+    wheel = WheelSpeedEstimator(speed_window, rad_per_count, dt, encoder_counts(state, p))
     v_applied = 0.0
     push_step = int(round(push_time_s / dt)) if push_impulse_ns else -1
+    # The firmware starts the filter from the accelerometer angle when the motors are armed.
+    first = read_imu(state, 0.0, 0.0, p, rng)
+    tilt = ComplementaryFilter(fusion_tau_s, dt, accel_angle(first.accel_fwd_g, first.accel_up_g))
 
     t_log = np.empty(n)
     s_log = np.empty((n, 4))
     v_log = np.empty(n)
+    e_log = np.empty(n)
+    g_log = np.full(n, np.nan)
+    a_log = np.full(n, np.nan)
     for k in range(n):
         if k == push_step:
             state = apply_push(state, push_impulse_ns, p)
         # Sample sensors at the start of the period.
-        theta_meas = state[2] + rng.normal(0.0, p.angle_noise_rad)
-        rate_meas = state[3] + rng.normal(0.0, p.rate_noise_rad_s)
-        counts = encoder_counts(state, p)
-        wheel_rel_rate = (counts - prev_counts) / p.encoder_counts_per_rev * 2 * math.pi / dt
-        prev_counts = counts
+        if sensing == "imu":
+            _, x_ddot, _, theta_ddot = derivative(state, v_applied, p)
+            imu = read_imu(state, x_ddot, theta_ddot, p, rng)
+            rate_meas = imu.gyro_rad_s
+            acc = accel_angle(imu.accel_fwd_g, imu.accel_up_g)
+            theta_meas = tilt.update(rate_meas, acc)
+            g_log[k], a_log[k] = rate_meas, acc
+        else:
+            theta_meas = state[2] + rng.normal(0.0, p.angle_noise_rad)
+            rate_meas = state[3] + rng.normal(0.0, p.rate_noise_rad_s)
+        wheel_rel_rate = wheel.update(encoder_counts(state, p))
         speed_meas = (wheel_rel_rate + rate_meas) * p.r_wheel  # ground speed = r (phi_rel' + theta')
         v_next = ctrl.update(theta_meas, rate_meas, speed_meas, speed_ref, dt)
 
-        t_log[k], s_log[k], v_log[k] = k * dt, state, v_applied
+        t_log[k], s_log[k], v_log[k], e_log[k] = k * dt, state, v_applied, theta_meas
         for _ in range(SUBSTEPS):
             state = rk4_step(state, v_applied, dt / SUBSTEPS, p)
         v_applied = v_next  # one-period actuation delay
         if abs(state[2]) > math.pi / 2:  # lying on the floor: stop integrating
-            t_log, s_log, v_log = t_log[: k + 1], s_log[: k + 1], v_log[: k + 1]
+            t_log, s_log, v_log, e_log = t_log[: k + 1], s_log[: k + 1], v_log[: k + 1], e_log[: k + 1]
+            g_log, a_log = g_log[: k + 1], a_log[: k + 1]
             s_log[-1, 2] = math.copysign(math.pi / 2, state[2])
             break
-    return SimResult(t_log, s_log, v_log)
+    return SimResult(t_log, s_log, v_log, e_log, g_log, a_log)
 
 
 def apply_push(state: State, impulse_ns: float, p: RobotParams) -> State:

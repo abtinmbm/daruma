@@ -8,37 +8,39 @@ In CI a missing C compiler is a failure; locally the test is skipped with a mess
 from __future__ import annotations
 
 import ctypes
-import os
-import shutil
-import subprocess
-import sys
-from pathlib import Path
 
 import numpy as np
 import pytest
 
-from daruma.controllers import Pid
-
-CONTROL = Path(__file__).resolve().parents[2] / "firmware" / "components" / "control"
+from daruma.controllers import Pid, WheelSpeedEstimator
 
 
 class PidCtrl(ctypes.Structure):
     _fields_ = [(name, ctypes.c_float) for name in ("kp", "ki", "kd", "i_limit", "out_min", "out_max", "integral")]
 
 
+class SpeedEst(ctypes.Structure):
+    _fields_ = [
+        ("history", ctypes.c_int32 * 32),
+        ("window", ctypes.c_uint32),
+        ("head", ctypes.c_uint32),
+        ("scale", ctypes.c_float),
+    ]
+
+
 @pytest.fixture(scope="module")
-def lib(tmp_path_factory: pytest.TempPathFactory) -> ctypes.CDLL:
-    cc = shutil.which("gcc") or shutil.which("cc")
-    if cc is None:
-        if os.environ.get("CI"):
-            pytest.fail("no C compiler in CI")
-        pytest.skip("no C compiler on PATH")
-    suffix = ".dll" if sys.platform == "win32" else ".so"
-    out = tmp_path_factory.mktemp("cbuild") / f"daruma_control{suffix}"
-    cmd = [cc, "-std=c99", "-O2", "-ffp-contract=off", "-Wall", "-Wextra", "-Werror", "-shared", "-fPIC"]
-    cmd += ["-I", str(CONTROL / "include"), str(CONTROL / "pid.c"), "-o", str(out)]
-    subprocess.run(cmd, check=True)
-    library = ctypes.CDLL(str(out))
+def lib(build_c_lib) -> ctypes.CDLL:
+    library = build_c_lib("daruma_control", ["control/pid.c", "control/speed_est.c"])
+    library.speed_est_init.argtypes = [
+        ctypes.POINTER(SpeedEst),
+        ctypes.c_uint32,
+        ctypes.c_float,
+        ctypes.c_float,
+        ctypes.c_int32,
+    ]
+    library.speed_est_init.restype = None
+    library.speed_est_update.argtypes = [ctypes.POINTER(SpeedEst), ctypes.c_int32]
+    library.speed_est_update.restype = ctypes.c_float
     library.pid_ctrl_update.argtypes = [ctypes.POINTER(PidCtrl), ctypes.c_float, ctypes.c_float, ctypes.c_float]
     library.pid_ctrl_update.restype = ctypes.c_float
     return library
@@ -58,3 +60,47 @@ def test_c_pid_matches_python_bit_for_bit(lib: ctypes.CDLL, seed: int) -> None:
         got = np.float32(lib.pid_ctrl_update(ctypes.byref(c_pid), float(e), float(r), dt))
         assert got == expected, f"C {got!r} != Python {expected!r}"
         assert np.float32(c_pid.integral) == ref.integral
+
+
+RAD_PER_COUNT = float(np.float32(2 * np.pi / 1320))
+
+
+@pytest.mark.parametrize(
+    ("window", "start", "low", "high"),
+    [
+        (1, 0, -40, 41),
+        (8, 12345, -40, 41),
+        (32, 2**31 - 100, 0, 41),  # drifts forward across INT32_MAX
+        (8, -(2**31) + 100, -40, 1),  # drifts backward across INT32_MIN
+        (40, -7, -40, 41),  # window above the maximum: clamped to 32
+    ],
+)
+def test_c_speed_estimator_matches_python_bit_for_bit(
+    lib: ctypes.CDLL, window: int, start: int, low: int, high: int
+) -> None:
+    """Random-walk counts, including runs across both int32 limits and a window above the maximum (clamped)."""
+    rng = np.random.default_rng(window)
+    steps = rng.integers(low, high, 3000)
+    unwrapped = start + np.cumsum(steps)
+    if start > 2**30:
+        assert unwrapped.max() > 2**31 - 1  # the run really crosses the limit
+    if start < -(2**30):
+        assert unwrapped.min() < -(2**31)
+    # A continuous 32-bit accumulated count (what the PCNT driver must provide, see speed_est.h), wrapping at int32.
+    counts = (unwrapped + 2**31) % 2**32 - 2**31
+    c_est = SpeedEst()
+    lib.speed_est_init(ctypes.byref(c_est), window, RAD_PER_COUNT, 1.0 / 416.0, start)
+    ref = WheelSpeedEstimator(window, RAD_PER_COUNT, 1.0 / 416.0, start)
+    assert c_est.window == ref.window and np.float32(c_est.scale) == ref.scale
+    for k in counts:
+        got = np.float32(lib.speed_est_update(ctypes.byref(c_est), int(k)))
+        assert got == np.float32(ref.update(int(k)))
+
+
+def test_speed_estimator_is_exact_for_a_constant_speed() -> None:
+    """A steady N counts per period reads N counts per period once the window is full, and is ramping before."""
+    est = WheelSpeedEstimator(8, RAD_PER_COUNT, 1.0 / 416.0, 0)
+    readings = [est.update(5 * (k + 1)) for k in range(20)]
+    expected = 5 * RAD_PER_COUNT * 416.0
+    assert readings[-1] == pytest.approx(expected, rel=1e-6)
+    assert readings[3] == pytest.approx(expected * 4 / 8, rel=1e-6)

@@ -1,4 +1,4 @@
-idf_component_register(SRCS "pid.c"
+idf_component_register(SRCS "pid.c" "speed_est.c"
                        INCLUDE_DIRS "include")
 
 # No fused multiply-add contraction, so results match the host build and the Python reference.

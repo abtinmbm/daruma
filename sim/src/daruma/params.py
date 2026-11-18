@@ -36,8 +36,17 @@ class RobotParams:
     v_battery: float = 9.6  # V, 8x AA NiMH nominal
     # Sensing and control.
     loop_hz: float = 416.0  # control rate = IMU output data rate
-    angle_noise_rad: float = math.radians(0.2)  # std of the fused tilt estimate
+    angle_noise_rad: float = math.radians(0.2)  # std of the tilt in "ideal" sensing mode only
     rate_noise_rad_s: float = math.radians(0.5)  # std of the gyro rate
+    # IMU (LSM6DSOX) as mounted on the body; used by the "imu" sensing mode (see imu.py).
+    imu_height: float = 0.08  # m, axle to IMU along the body axis
+    imu_mount_offset_rad: float = 0.0  # IMU axes tilted forward relative to the body (also stands in for a COM offset)
+    accel_noise_g: float = 0.03  # std per sample, in g
+    gyro_bias_rad_s: float = math.radians(0.5)  # residual bias after the startup calibration
+    accel_lsb_g: float = 0.122e-3  # g per count at the +-4 g full scale
+    accel_full_scale_g: float = 4.0
+    gyro_lsb_rad_s: float = math.radians(17.5e-3)  # rad/s per count at the +-500 dps full scale
+    gyro_full_scale_rad_s: float = math.radians(500.0)
     provenance: dict[str, str] = field(
         default_factory=lambda: {
             "m_body": "ESTIMATE: 2 motors+brackets 0.40, 8xAA+holder 0.27, plates 0.12, electronics 0.08, hardware 0.05",
@@ -54,6 +63,14 @@ class RobotParams:
             "v_battery": "ESTIMATE: 8 x 1.2 V nominal",
             "angle_noise_rad": "ESTIMATE: pessimistic fused-angle noise",
             "rate_noise_rad_s": "ESTIMATE: pessimistic gyro noise incl. vibration",
+            "imu_height": "ESTIMATE: IMU on the lower plate, ~8 cm above the axle; set from the CAD",
+            "imu_mount_offset_rad": "ESTIMATE: 0 nominal; tuning and tests use +-2 deg (board mounting, COM not over axle)",
+            "accel_noise_g": "ESTIMATE: pessimistic, motor/gearbox vibration dominates the sensor's own noise",
+            "gyro_bias_rad_s": "ESTIMATE: datasheet zero-rate level is +-1 dps typ.; assume half remains after calibration",
+            "accel_lsb_g": "ESTIMATE: datasheet typ. sensitivity at +-4 g (LSM6DSOX); config choice",
+            "accel_full_scale_g": "ESTIMATE: config choice, +-4 g full scale (not a physical estimate)",
+            "gyro_lsb_rad_s": "ESTIMATE: datasheet typ. sensitivity at +-500 dps (LSM6DSOX); config choice",
+            "gyro_full_scale_rad_s": "ESTIMATE: config choice, +-500 dps full scale (not a physical estimate)",
         }
     )
 

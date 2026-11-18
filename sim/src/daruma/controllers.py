@@ -42,15 +42,47 @@ class Pid:
         return float(out)
 
 
+SPEED_WINDOW = 8  # control periods the wheel speed is differenced over (19 ms at 416 Hz)
+SPEED_EST_MAX_WINDOW = 32  # matches speed_est.h
+
+
+class WheelSpeedEstimator:
+    """Wheel speed relative to the body from encoder counts, differenced over `window` periods.
+
+    Mirrors speed_est_init / speed_est_update in firmware/components/control/speed_est.c, including the int32
+    wrap-around of the count difference and the float32 operation order.
+    """
+
+    def __init__(self, window: int, rad_per_count: float, dt: float, counts0: int) -> None:
+        self.window = min(max(window, 1), SPEED_EST_MAX_WINDOW)
+        self.scale = F32(F32(rad_per_count) / (F32(self.window) * F32(dt)))
+        self.history = [counts0] * self.window
+        self.head = 0
+
+    def update(self, counts: int) -> float:
+        delta = (counts - self.history[self.head] + 2**31) % 2**32 - 2**31  # int32 wrap, like the C code
+        self.history[self.head] = counts
+        self.head = (self.head + 1) % self.window
+        return float(F32(delta) * self.scale)
+
+
 @dataclass
 class CascadeGains:
-    """Gains of the cascaded balance controller (outer speed loop -> inner angle loop)."""
+    """Gains of the cascaded balance controller (outer speed loop -> inner angle loop).
 
-    angle_kp: float = 80.0  # V/rad
-    angle_ki: float = 300.0  # V/(rad s)
-    angle_kd: float = 3.0  # V/(rad/s)
-    speed_kp: float = 0.12  # rad/(m/s)
-    speed_ki: float = 0.08  # rad/m
+    Defaults come from `python -m daruma.tuning search` (Nelder-Mead over the scenario set in tuning.py,
+    IMU + complementary-filter sensing, 8-period speed window), rounded, except speed_ki, which was raised by
+    hand from the search's 0.059 to 0.15. The speed integral acts on distance, so a level error delta (IMU
+    mounted crooked, centre of mass not over the axle) is trimmed out after rolling about delta / speed_ki;
+    the higher value roughly halves that distance for slightly more tilt while standing. Tuned on ESTIMATE
+    parameters, so these are a starting point for the robot, not final values.
+    """
+
+    angle_kp: float = 67.0  # V/rad
+    angle_ki: float = 380.0  # V/(rad s)
+    angle_kd: float = 3.4  # V/(rad/s)
+    speed_kp: float = 0.39  # rad/(m/s)
+    speed_ki: float = 0.15  # rad/m (the speed integral acts on distance: lean correction per metre rolled)
     max_lean: float = 0.25  # rad, limit on the angle setpoint
 
 
