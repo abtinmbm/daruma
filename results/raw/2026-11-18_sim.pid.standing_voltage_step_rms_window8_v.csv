@@ -1,0 +1,4 @@
+# simulate(RobotParams(), CascadeGains(), theta0_deg=0, duration_s=6, seed=4); stats over t >= 2 s
+speed_window_periods,voltage_step_rms_v,voltage_rms_v
+8,0.1468616986370371,0.4284383612164856
+1,0.8874183098544092,0.63373043148

@@ -17,4 +17,4 @@ uv run --project sim python -m daruma.results add --metric <hw|sim>.<area>.<name
 | `commit` | the code version that produced it (`+dirty` if uncommitted changes existed) |
 | `note` | corrections refer to the earlier row here; rows are never edited or deleted |
 
-No results yet.
+The first rows are simulation results (`sim.*`) for the tuned cascade PID; `figures/sim_pid_response.png` shows its simulated response. No hardware results yet.
