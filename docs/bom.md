@@ -6,8 +6,8 @@ Prices are approximate CAD before tax, checked November 2026; marketplace listin
 
 | # | Part | Qty | What to check before buying | Where | ~CAD |
 |---|---|---|---|---|---|
-| 1 | ESP32-S3-DevKitC-1-N8R8 | 1 | Exact model N8R8 (8 MB flash, 8 MB PSRAM) | [Digi-Key](https://www.digikey.ca/en/products/detail/espressif-systems/ESP32-S3-DEVKITC-1-N8R8/15295894) | 23 |
-| 2 | Adafruit LSM6DSOX 6-DoF IMU breakout (#4438) | 1 | Comes with header pins to solder | [Digi-Key](https://www.digikey.ca/en/products/detail/adafruit-industries-llc/4438/11497501) or PiShop.ca | 18 |
+| 1 | ESP32-S3-DevKitC-1-N8R8 | 1 | Exact model N8R8 (8 MB flash, 8 MB PSRAM) on an ESP32-S3-WROOM-1 module; many listings titled "ESP32-S3 dev board" have other memory sizes. A DevKitC-1-compatible clone with the same pinout is fine | [Amazon.ca search](https://www.amazon.ca/s?k=ESP32-S3-DevKitC-1-N8R8); fallback [Digi-Key](https://www.digikey.ca/en/products/detail/espressif-systems/ESP32-S3-DEVKITC-1-N8R8/15295894) | 20–30 |
+| 2 | Adafruit LSM6DSOX 6-DoF IMU breakout (#4438) | 1 | Genuine Adafruit #4438 (not a generic LSM6DS3/LSM6DSO board: different pinout); comes with header pins to solder | [Amazon.ca search](https://www.amazon.ca/s?k=Adafruit+LSM6DSOX+4438) if a listing exists; otherwise [PiShop.ca](https://www.pishop.ca/?s=LSM6DSOX) | 18–25 |
 | 3 | JGB37-520 gearmotor with Hall encoder, **12 V, ~330 rpm (30:1)** | 2 | Encoder version (6 wires: motor ±, GND, VCC, A, B); encoder works at 3.3 V; ideally bundled with L-bracket and 6 mm coupling | [Amazon.ca search](https://www.amazon.ca/s?k=JGB37-520+encoder+12V+330RPM) | 55–70 |
 | 4 | Rubber wheels 65–85 mm with 6 mm shaft couplings | 2 | Hub fits a 6 mm D-shaft; skip if item 3 includes wheels | [Amazon.ca search](https://www.amazon.ca/s?k=65mm+wheel+6mm+coupling+JGB37) | 15–20 |
 | 5 | Cytron MDD3A dual motor driver | 1 | 4–16 V, 3 A per channel | [RobotShop CA search](https://ca.robotshop.com/search?q=cytron%20mdd3a) | 15 |
@@ -16,7 +16,7 @@ Prices are approximate CAD before tax, checked November 2026; marketplace listin
 | 8 | 8×AA battery holder with leads (or 2× 4×AA in series) | 1 | Wire leads, ideally with a cover | [Amazon.ca search](https://www.amazon.ca/s?k=8+AA+battery+holder+leads) | 8 |
 | 9 | Inline blade-fuse holder + 5 A fuses | 1 | ATC/ATO size | Amazon.ca / Canadian Tire | 8 |
 | 10 | Rocker switch, ≥ 6 A at 12 V DC | 1 | | Amazon.ca | 6 |
-| 11 | 5 V buck converter, fixed 5 V output (e.g. Mini560 5 V) | 1–2 | Input range covers 12 V; fixed-output version | [Amazon.ca search](https://www.amazon.ca/s?k=Mini560+5V+buck) | 6–10 |
+| 11 | 5 V buck converter, fixed 5 V output (e.g. Mini560 5 V) | 1–2 | Input range covers 12 V; fixed-output version. If item 2 comes from PiShop.ca, the Pololu D24V10F5 (5 V, 1 A, up to 36 V in, no reverse-polarity protection) is a better-documented alternative in the same cart | [Amazon.ca search](https://www.amazon.ca/s?k=Mini560+5V+buck); alt. [PiShop.ca D24V10F5](https://pishop.ca/product/pololu-5v-1a-step-down-voltage-regulator-d24v10f5) | 6–20 |
 | 12 | M3 brass standoff + screw kit | 1 | Assorted 10–40 mm | [Amazon.ca search](https://www.amazon.ca/s?k=M3+brass+standoff+kit) | 15 |
 | 13 | Female–female Dupont jumper wires | 1 pack | | Amazon.ca | 6 |
 | 14 | 22 AWG silicone hookup wire + heat-shrink | 1 | For motor and battery wiring | Amazon.ca | 15 |
