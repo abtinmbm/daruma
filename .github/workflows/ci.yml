@@ -1,0 +1,33 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  sim:
+    name: simulation, host C tests, lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - name: Install
+        run: uv sync --project sim
+      - name: Lint
+        run: |
+          uv run --project sim ruff check sim
+          uv run --project sim ruff format --check sim
+      - name: Tests (physics, closed loop, C vs Python golden vectors)
+        run: uv run --project sim pytest -q sim
+
+  firmware:
+    name: firmware build (ESP32-S3)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: espressif/esp-idf-ci-action@v1
+        with:
+          esp_idf_version: v6.1.1
+          target: esp32s3
+          path: firmware

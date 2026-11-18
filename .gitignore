@@ -1,0 +1,26 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+.ruff_cache/
+sim/scratch/
+
+# ESP-IDF
+firmware/build/
+firmware/sdkconfig
+firmware/sdkconfig.old
+firmware/managed_components/
+
+# CAD exports are regenerated from source
+cad/out/
+
+# Environment
+.env
+.env.*
+
+# Editors and OS
+.vscode/
+.idea/
+Thumbs.db
+.DS_Store
