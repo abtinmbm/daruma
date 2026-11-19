@@ -45,4 +45,4 @@ Battery sense: 11.6 V × 30 / 130 = 2.68 V at full charge, inside the ADC's rang
 
 - Encoder VCC from the board's **3.3 V** pin (the ESP32-S3 inputs are not 5 V tolerant).
 - A 100 nF ceramic capacitor across each motor's terminals; twist each motor's two wires together.
-- Wire colours on JGB37-520 encoder leads vary by seller: identify them from the listing or label before connecting.
+- Wire colours on 37D encoder-motor leads vary by seller: identify them from the label or the encoder board before connecting, and measure the encoder output voltage before wiring it to the ESP32.
