@@ -15,10 +15,10 @@
 | 5 | Left encoder B | left motor encoder B | |
 | 6 | Right encoder A | right motor encoder A | PCNT unit 1, 3.3 V |
 | 7 | Right encoder B | right motor encoder B | |
-| 15 | M1A | MDD3A M1A | left motor PWM |
-| 16 | M1B | MDD3A M1B | |
-| 17 | M2A | MDD3A M2A | right motor PWM |
-| 18 | M2B | MDD3A M2B | |
+| 15 | M1A | left DRV8871 IN1 | left motor PWM |
+| 16 | M1B | left DRV8871 IN2 | |
+| 17 | M2A | right DRV8871 IN1 | right motor PWM |
+| 18 | M2B | right DRV8871 IN2 | |
 | 1 | Battery sense | divider midpoint | ADC1 channel 0 |
 | 21 | Timing | logic analyzer channel 0 | toggled every control loop |
 | 14 | Arm button | button to GND | internal pull-up |
@@ -30,8 +30,9 @@
 
 ```
 8×AA NiMH (9.6 V nominal, ~11.6 V full)
-  └─ 5 A fuse ─ rocker switch ─┬─ MDD3A power in (VB+ / GND)   + 100 µF across it
-                                ├─ 5 V buck in ─ 5 V out ─ DevKitC 5V pin
+  └─ 5 A fuse ─ rocker switch ─┬─ left DRV8871 VM / GND     + 100 µF across it
+                                ├─ right DRV8871 VM / GND    + 100 µF across it
+                                ├─ R-78E5.0-0.5 in ─ 5 V out ─ DevKitC 5V pin   (10 µF on in and out)
                                 └─ 100 kΩ ─┬─ 30 kΩ (3×10 kΩ) ─ GND
                                            └─ GPIO1 (+100 nF to GND)
 All grounds common.
@@ -39,9 +40,11 @@ All grounds common.
 
 Battery sense: 11.6 V × 30 / 130 = 2.68 V at full charge, inside the ADC's range at 12 dB attenuation.
 
-**Before connecting the board:** power the buck alone and confirm 4.9–5.2 V on its output with the multimeter.
+**Before connecting the board:** power the regulator alone and confirm 4.9–5.2 V on its output with the multimeter. The R-78E needs at least 7 V in; the low-battery latch trips well above that.
 
 ## Motors and encoders
+
+- DRV8871 logic: IN1/IN2 straight from the ESP32 (3.3 V); driver GND common with the ESP32 GND. Each board's OUT1/OUT2 goes to its motor. Coast, brake and sleep behaviour (both inputs low) to be confirmed from the TI datasheet before the PWM driver is written.
 
 - Encoder VCC from the board's **3.3 V** pin (the ESP32-S3 inputs are not 5 V tolerant).
 - A 100 nF ceramic capacitor across each motor's terminals; twist each motor's two wires together.
