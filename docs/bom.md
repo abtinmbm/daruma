@@ -25,23 +25,25 @@ Prices are CAD before tax. Stock, price and delivery date were checked on the st
 
 | # | Part | Qty | Notes | CAD |
 |---|---|---|---|---|
-| 8 | Toggle or rocker switch, 2-pin, ≥ 6 A at 12 V DC | 1 | Hard power cut | ~3–5 |
-| 9 | Inline ATC/ATO blade-fuse holder + 5 A fuse | 1 | Standard size, not "mini" | ~5 |
-| 10 | M3 × 40 mm screws + nuts (plate spacers) | ~8 + 16 nuts | Nuts on both sides of each plate set the spacing | ~5 |
-| 11 | Laser-cut 1/8" acrylic plates (2–3) | — | Cut from the `cad/` file at the university prototyping centre before Dec 19: CA$0.55 per 10 × 10 cm of 1/8" acrylic (price list checked Nov 24), so about 1–2 per plate | ~4 total |
+| 8 | Automotive 12 V DC toggle or rocker switch, ≥ 6 A DC | 1 | Main power switch, so the motors can be cut instantly. Check the rating is for DC; many household switches are rated for AC only | ~3–5 |
+| 9 | Inline ATC/ATO blade-fuse holder + 5 A fuse | 1 | Protects against a short: a NiMH pack can push tens of amps into a short and melt wires. 5 A is above both motors at their 2 A limits plus the electronics. Standard size, not "mini" | ~5 |
+| 10 | M3 × 40 mm screws + nuts (plate spacers) | ~8 + 16 nuts | Hold the 2–3 plates stacked apart; nuts on both sides of each plate set the spacing | ~5 |
+| 11 | M3 × 10 mm screws + nuts | ~12 | Motor brackets to the bottom plate (the kit's screws hold the motor to its bracket) | ~3 |
+| 12 | 18–20 AWG stranded wire, red + black, ~1 m each | 1 | Battery → fuse → switch → both drivers and the regulator. Breadboard jumpers are too thin for motor current, and motor current must not run through the breadboard | ~5 |
+| 13 | Double-sided foam mounting tape | 1 | Holds the IMU, drivers and regulator flat on the plate (the IMU must not wobble) | ~4 |
+| 14 | Laser-cut 1/8" acrylic plates (2–3) | — | Cut from the `cad/` file at the university prototyping centre before Dec 19: CA$0.55 per 10 × 10 cm of 1/8" acrylic (price list checked Nov 24), so about 1–2 per plate | ~4 total |
 
-**Total:** Amazon.ca 113.55 + Digi-Key 45.61 + local about 17 + plates about 4 = about CA$180, plus the Digi-Key shipping fee shown at checkout. Budget cap: CA$225 including shipping.
+**Total:** Amazon.ca 113.55 + Digi-Key 45.61 + local about 29 + plates about 4 = about CA$192, plus the Digi-Key shipping fee shown at checkout. Budget cap: CA$225 including shipping.
 
 ## Optional / later
 
 | Part | When to buy | Where | CAD |
 |---|---|---|---|
-| 22 AWG silicone stranded wire | Only if a motor or battery lead turns out too short | [Amazon.ca, Fermerry 6 × 10 ft](https://www.amazon.ca/Fermerry-Stranded-Electric-Tinned-Copper/dp/B089CQHRDT) | 20.49 |
 | 24 MHz 8-channel USB logic analyzer | Only if SPI or encoder debugging stalls; loop timing is measured in firmware (timestamps in the serial log) | [Amazon.ca, HiLetgo](https://www.amazon.ca/HiLetgo-Analyzer-Device-Channel-Arduino/dp/B077LSG5P2) | 21.99 |
 
 ## Already owned and used
 
-Multimeter, solder kit, half-size breadboard (mounted on the robot for v1 wiring), jumper wires (male and female), 40-pin headers, 100 µF and 10 µF electrolytic capacitors (bulk capacitance at each motor driver and at the regulator), 100 nF ceramic capacitors (across motor terminals and the battery-sense divider), resistors (100 kΩ + 3× 10 kΩ battery divider), buttons (arm/reset), LEDs, buzzer.
+Multimeter, solder kit, electrical tape or heat-shrink, USB-C data cable (for the ESP32; a charge-only cable won't flash it), USB wall adapter (for the battery charger), half-size breadboard (mounted on the robot for v1 wiring), jumper wires (male and female), 40-pin headers, 100 µF and 10 µF electrolytic capacitors (bulk capacitance at each motor driver and at the regulator), 100 nF ceramic capacitors (across motor terminals and the battery-sense divider), resistors (100 kΩ + 3× 10 kΩ battery divider), buttons (arm/reset), LEDs, buzzer.
 
 ## Why these parts
 
