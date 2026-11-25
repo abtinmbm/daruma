@@ -7,7 +7,7 @@ import math
 import numpy as np
 import pytest
 
-from daruma.model import accelerations, derivative, effective_voltage, linearise
+from daruma.model import accelerations, derivative, effective_voltage, linearise, motor_torque
 from daruma.params import RobotParams
 
 P = RobotParams()
@@ -61,6 +61,20 @@ def test_positive_voltage_drives_wheels_forward_and_tips_body_back() -> None:
 @pytest.mark.parametrize(("v_cmd", "expected"), [(0.3, 0.0), (-0.3, 0.0), (5.0, 4.6), (-5.0, -4.6), (50.0, 9.2)])
 def test_effective_voltage_applies_deadband_and_saturation(v_cmd: float, expected: float) -> None:
     assert effective_voltage(v_cmd, P) == pytest.approx(expected)
+
+
+def test_driver_current_limit_caps_stall_torque_and_leaves_small_currents_alone() -> None:
+    # Stalled at full battery the unlimited current (9.6 V / 3.43 ohm = 2.8 A) exceeds the 2 A regulation.
+    assert P.v_battery / P.motor_r > P.driver_current_limit_a
+    stall = motor_torque(P.v_battery, 0.0, 0.0, P)
+    assert stall == pytest.approx(2 * P.motor_kt * P.driver_current_limit_a)
+    assert motor_torque(-P.v_battery, 0.0, 0.0, P) == pytest.approx(-stall)
+    # Below the limit the torque is the plain motor law.
+    v = 0.5 * P.driver_current_limit_a * P.motor_r
+    assert motor_torque(v, 0.0, 0.0, P) == pytest.approx(2 * P.motor_kt * v / P.motor_r)
+    # Back-EMF counts: driving against a wheel already spinning forward stays inside the limit.
+    omega = P.v_battery / P.motor_ke
+    assert motor_torque(P.v_battery, omega * P.r_wheel, 0.0, P) == pytest.approx(0.0, abs=1e-12)
 
 
 def test_no_load_speed_is_plausible_for_a_333_rpm_motor_on_96_v() -> None:

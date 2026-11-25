@@ -32,6 +32,7 @@ class RobotParams:
     motor_r: float = 3.43  # ohm (winding resistance)
     motor_deadband_v: float = 0.4  # V, applied voltage below which the motor doesn't turn
     encoder_counts_per_rev: int = 1320  # quadrature counts per wheel revolution
+    driver_current_limit_a: float = 2.0  # A per motor, motor driver current regulation
     # Power.
     v_battery: float = 9.6  # V, 8x AA NiMH nominal
     # Sensing and control.
@@ -60,6 +61,7 @@ class RobotParams:
             "motor_r": "ESTIMATE: 12 V / 3.5 A listed stall current",
             "motor_deadband_v": "ESTIMATE: guess, to be measured with a slow PWM ramp",
             "encoder_counts_per_rev": "ESTIMATE: 11 PPR x 4 (quadrature) x 30 gear ratio",
+            "driver_current_limit_a": "ESTIMATE: Adafruit DRV8871, 30 kOhm R_lim 'for a ~2A current limit'",
             "v_battery": "ESTIMATE: 8 x 1.2 V nominal",
             "angle_noise_rad": "ESTIMATE: pessimistic fused-angle noise",
             "rate_noise_rad_s": "ESTIMATE: pessimistic gyro noise incl. vibration",

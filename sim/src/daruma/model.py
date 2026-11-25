@@ -15,8 +15,11 @@ Derivation (Lagrange, no wheel slip, no friction other than the motor's own back
 
 Motor model (both motors together, inductance neglected because its time constant is ~1 ms):
     omega_rel = x'/r - theta'   (wheel speed relative to the body, what the encoders measure)
-    i         = (V_eff - k_e omega_rel) / R
+    i         = (V_eff - k_e omega_rel) / R, clamped to +-I_lim (the driver's current regulation)
     tau       = 2 k_t i
+
+The DRV8871 regulates current by chopping (brake for a fixed off-time once I_TRIP is reached); at the
+control timescale that looks like a clamp on the average current, which is what is modelled here.
 """
 
 from __future__ import annotations
@@ -44,6 +47,7 @@ def motor_torque(v_eff: float, x_dot: float, theta_dot: float, p: RobotParams) -
     """Total wheel torque from both motors for an effective voltage and the current speeds."""
     omega_rel = x_dot / p.r_wheel - theta_dot
     current = (v_eff - p.motor_ke * omega_rel) / p.motor_r
+    current = max(-p.driver_current_limit_a, min(p.driver_current_limit_a, current))
     return 2.0 * p.motor_kt * current
 
 
